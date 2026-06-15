@@ -363,11 +363,28 @@ function SteamingBowl({ size = 96 }) {
 }
 
 // ─── LOGIN ────────────────────────────────────────────────────────────────────
+const ROLE_THEME = {
+  admin: {
+    label: "Admin", icon: "ti-crown", accent: "#C8362C", accent2: "#9E241C",
+    soft: "rgba(200,54,44,0.10)",
+    desc: "Akses penuh: dashboard, menu, cabang, pengguna & laporan.",
+    demo: "admin / admin123",
+  },
+  cashier: {
+    label: "Kasir", icon: "ti-cash-register", accent: "#E08A1E", accent2: "#C2730F",
+    soft: "rgba(242,160,61,0.14)",
+    desc: "Mode kasir: transaksi POS & pengeluaran harian.",
+    demo: "kasir_a / kasir123 · kasir_b / kasir123",
+  },
+};
+
 function LoginPage({ onLogin }) {
+  const [role, setRole] = useState("admin");
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [err, setErr] = useState("");
   const [busy, setBusy] = useState(false);
+  const theme = ROLE_THEME[role];
 
   const doLogin = async () => {
     if (busy) return;
@@ -375,6 +392,12 @@ function LoginPage({ onLogin }) {
     setErr("");
     try {
       const { token, user } = await api.login(username, password);
+      // Cocokkan peran yang dipilih dengan peran akun sebenarnya.
+      if (user.role !== role) {
+        const actual = user.role === "admin" ? "Admin" : "Kasir";
+        setErr(`Akun ini terdaftar sebagai ${actual}, bukan ${theme.label}. Silakan pilih tab ${actual}.`);
+        return;
+      }
       onLogin(token, user);
     } catch (e) {
       setErr(e.message || "Username atau password salah.");
@@ -399,21 +422,51 @@ function LoginPage({ onLogin }) {
         <span key={i} className="mj-float-emoji" style={{ left: f.left, top: f.top, animationDelay: f.delay, "--r": f.r }}>{f.e}</span>
       ))}
       <div style={S.loginCard} className="mj-login-card">
-        <div style={{ textAlign: "center", marginBottom: 20 }}>
+        <div style={{ textAlign: "center", marginBottom: 18 }}>
           <SteamingBowl size={92} />
           <h1 style={S.loginTitle}>Mie Jebew</h1>
           <p style={S.loginSub}>Pedasnya bikin nagih 🌶️ · Sistem Kasir Multi-Cabang</p>
         </div>
+
+        {/* Pemilih level / peran */}
+        <div style={{ display: "flex", gap: 6, background: "rgba(0,0,0,0.045)", padding: 5, borderRadius: 14, marginBottom: 12 }}>
+          {["admin", "cashier"].map((r) => {
+            const t = ROLE_THEME[r];
+            const active = role === r;
+            return (
+              <button
+                key={r}
+                type="button"
+                onClick={() => { setRole(r); setErr(""); }}
+                style={{
+                  flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
+                  padding: "11px 8px", borderRadius: 10, border: "none", cursor: "pointer",
+                  fontFamily: FONT_DISPLAY, fontWeight: 800, fontSize: 15, transition: "all .2s ease",
+                  background: active ? `linear-gradient(135deg, ${t.accent}, ${t.accent2})` : "transparent",
+                  color: active ? "#fff" : "#a07c66",
+                  boxShadow: active ? "0 8px 18px rgba(0,0,0,0.18)" : "none",
+                  transform: active ? "translateY(-1px)" : "none",
+                }}
+              >
+                <i className={`ti ${t.icon}`} style={{ fontSize: 18 }} aria-hidden="true" /> {t.label}
+              </button>
+            );
+          })}
+        </div>
+        <p style={{ textAlign: "center", fontSize: 12.5, color: "#8a6a55", margin: "0 0 16px", minHeight: 34, lineHeight: 1.5 }}>
+          {theme.desc}
+        </p>
+
         <label style={{ ...S.label, color: "#7a5a47" }}>Username</label>
-        <input className="mj-input" style={S.input} value={username} onChange={e => { setUsername(e.target.value); setErr(""); }} placeholder="Masukkan username" onKeyDown={e => e.key === "Enter" && doLogin()} />
+        <input className="mj-input" style={S.input} value={username} onChange={e => { setUsername(e.target.value); setErr(""); }} placeholder={role === "admin" ? "mis. admin" : "mis. kasir_a"} onKeyDown={e => e.key === "Enter" && doLogin()} />
         <label style={{ ...S.label, color: "#7a5a47" }}>Password</label>
         <input type="password" className="mj-input" style={S.input} value={password} onChange={e => { setPassword(e.target.value); setErr(""); }} placeholder="Masukkan password" onKeyDown={e => e.key === "Enter" && doLogin()} />
         {err && <p style={{ color: "#dc2626", fontSize: 13, margin: "-4px 0 10px", fontWeight: 600 }} className="mj-row-in"><i className="ti ti-alert-circle" aria-hidden="true" /> {err}</p>}
-        <button className="mj-btn" style={{ ...S.btnPrimary, opacity: busy ? 0.75 : 1 }} onClick={doLogin} disabled={busy}>
-          {busy ? "Memproses..." : "Masuk ke Kasir"}
+        <button className="mj-btn" style={{ ...S.btnPrimary, background: `linear-gradient(135deg, ${theme.accent}, ${theme.accent2})`, opacity: busy ? 0.75 : 1 }} onClick={doLogin} disabled={busy}>
+          {busy ? "Memproses..." : <><i className={`ti ${theme.icon}`} style={{ fontSize: 17, marginRight: 6 }} aria-hidden="true" />Masuk sebagai {theme.label}</>}
         </button>
-        <div style={{ marginTop: 16, padding: "10px 12px", background: "var(--mj-red-soft)", borderRadius: 12, fontSize: 12, color: "#9E241C", lineHeight: 1.6 }}>
-          <strong>Akun demo:</strong><br />admin / admin123 · kasir_a / kasir123 · kasir_b / kasir123
+        <div style={{ marginTop: 16, padding: "10px 12px", background: theme.soft, borderRadius: 12, fontSize: 12, color: theme.accent2, lineHeight: 1.6, transition: "background .2s ease" }}>
+          <strong>Akun demo {theme.label}:</strong><br />{theme.demo}
         </div>
       </div>
     </div>
