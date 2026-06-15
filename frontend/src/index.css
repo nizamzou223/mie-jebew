@@ -1,0 +1,187 @@
+/* ============================================================
+   MIE JEBEW — Tema & Animasi
+   Brand mie pedas: merah cabai + amber kaldu di atas krem hangat
+   ============================================================ */
+:root {
+  /* Warna brand */
+  --mj-red:        #C8362C;   /* merah cabai utama */
+  --mj-red-deep:   #9E241C;   /* merah gelap (sidebar/depth) */
+  --mj-red-soft:   #F7E2DE;   /* merah sangat muda (highlight) */
+  --mj-amber:      #F2A03D;   /* amber kaldu (aksen) */
+  --mj-amber-deep: #E07B1A;
+  --mj-cream:      #FFF7EC;   /* krem hangat (background) */
+  --mj-charcoal:   #2C1B14;   /* coklat tua hangat (teks) */
+  --mj-green:      #2E7D52;   /* pendapatan / sukses */
+
+  /* Variabel sistem (dipakai oleh objek style S di App.jsx) */
+  --color-background-primary:   #ffffff;
+  --color-background-secondary: #FBEFE2;
+  --color-background-tertiary:  #FFF7EC;
+  --color-text-primary:   #2C1B14;
+  --color-text-secondary: #8a6f60;
+  --color-border-secondary: #e7cdb8;
+  --color-border-tertiary:  #f0ddca;
+
+  --mj-shadow-sm: 0 2px 8px rgba(158,36,28,0.08);
+  --mj-shadow-md: 0 8px 24px rgba(158,36,28,0.12);
+  --mj-shadow-lg: 0 20px 50px rgba(158,36,28,0.22);
+
+  --mj-font-display: "Baloo 2", system-ui, sans-serif;
+  --mj-font-body: "Plus Jakarta Sans", system-ui, -apple-system, sans-serif;
+}
+
+* { box-sizing: border-box; }
+html, body, #root { margin: 0; padding: 0; min-height: 100vh; }
+body {
+  font-family: var(--mj-font-body);
+  background: var(--mj-cream);
+  color: var(--color-text-primary);
+  -webkit-font-smoothing: antialiased;
+}
+input, button, select, textarea { font-family: inherit; }
+
+/* Scrollbar hangat */
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: #e7cdb8; border-radius: 20px; border: 2px solid transparent; background-clip: padding-box; }
+::-webkit-scrollbar-thumb:hover { background: var(--mj-amber); background-clip: padding-box; }
+
+/* ============================================================
+   KEYFRAMES
+   ============================================================ */
+@keyframes mj-fade-up { from { opacity: 0; transform: translateY(24px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes mj-pop { 0% { transform: scale(0.85); opacity: 0; } 60% { transform: scale(1.06); } 100% { transform: scale(1); opacity: 1; } }
+@keyframes mj-fade-in { from { opacity: 0; } to { opacity: 1; } }
+@keyframes mj-steam { 0% { opacity: 0; transform: translateY(6px) scaleX(1); } 30% { opacity: 0.7; } 100% { opacity: 0; transform: translateY(-26px) scaleX(1.5); } }
+@keyframes mj-float { 0%,100% { transform: translateY(0) rotate(var(--r,0deg)); } 50% { transform: translateY(-22px) rotate(var(--r,0deg)); } }
+@keyframes mj-gradient { 0% { background-position: 0% 50%; } 50% { background-position: 100% 50%; } 100% { background-position: 0% 50%; } }
+@keyframes mj-wiggle { 0%,100% { transform: rotate(0); } 25% { transform: rotate(-9deg); } 75% { transform: rotate(9deg); } }
+@keyframes mj-spin { to { transform: rotate(360deg); } }
+@keyframes mj-bounce-in { 0% { transform: scale(0) rotate(-20deg); opacity: 0; } 70% { transform: scale(1.15) rotate(6deg); } 100% { transform: scale(1) rotate(0); opacity: 1; } }
+@keyframes mj-slide-down { from { opacity: 0; transform: translateY(-16px); } to { opacity: 1; transform: translateY(0); } }
+
+/* ============================================================
+   ANIMASI LOGIN
+   ============================================================ */
+.mj-login-bg {
+  position: relative;
+  overflow: hidden;
+  background: linear-gradient(135deg, #C8362C 0%, #9E241C 45%, #E07B1A 100%);
+  background-size: 220% 220%;
+  animation: mj-gradient 14s ease infinite;
+}
+.mj-login-bg::after {
+  content: "";
+  position: absolute; inset: 0;
+  background-image: radial-gradient(rgba(255,255,255,0.10) 1px, transparent 1px);
+  background-size: 22px 22px;
+  pointer-events: none;
+}
+.mj-float-emoji {
+  position: absolute;
+  font-size: 2.2rem;
+  opacity: 0.85;
+  animation: mj-float 7s ease-in-out infinite;
+  filter: drop-shadow(0 6px 10px rgba(0,0,0,0.18));
+  user-select: none;
+  pointer-events: none;
+}
+.mj-login-card { animation: mj-pop 0.55s cubic-bezier(.18,.89,.32,1.28) both; position: relative; z-index: 2; }
+.mj-steam {
+  position: absolute;
+  width: 8px; height: 26px;
+  border-radius: 8px;
+  background: rgba(255,255,255,0.85);
+  filter: blur(3px);
+  animation: mj-steam 2.4s ease-out infinite;
+}
+.mj-bowl { animation: mj-fade-up 0.6s ease both; }
+
+/* Overlay logout */
+.mj-goodbye {
+  position: fixed; inset: 0; z-index: 99999;
+  display: flex; align-items: center; justify-content: center; flex-direction: column;
+  background: linear-gradient(135deg, #C8362C 0%, #9E241C 100%);
+  color: #fff; animation: mj-fade-in 0.25s ease both;
+}
+.mj-goodbye .mj-bowl-emoji { font-size: 5rem; animation: mj-bounce-in 0.7s cubic-bezier(.18,.89,.32,1.28) both; }
+
+/* Overlay sukses login */
+.mj-welcome {
+  position: fixed; inset: 0; z-index: 99999;
+  display: flex; align-items: center; justify-content: center; flex-direction: column;
+  background: linear-gradient(135deg, #2E7D52 0%, #1f5e3c 100%);
+  color: #fff; animation: mj-fade-in 0.25s ease both;
+}
+.mj-check {
+  width: 96px; height: 96px; border-radius: 50%;
+  background: rgba(255,255,255,0.16);
+  display: flex; align-items: center; justify-content: center;
+  margin-bottom: 18px;
+  animation: mj-bounce-in 0.6s cubic-bezier(.18,.89,.32,1.28) both;
+}
+.mj-check svg { width: 52px; height: 52px; }
+.mj-check svg path {
+  stroke-dasharray: 48; stroke-dashoffset: 48;
+  animation: mj-draw 0.5s ease 0.35s forwards;
+}
+@keyframes mj-draw { to { stroke-dashoffset: 0; } }
+.mj-welcome .mj-bowl-emoji { font-size: 2.4rem; margin-top: 10px; animation: mj-float 3s ease-in-out infinite; }
+
+/* ============================================================
+   MICRO-INTERAKSI
+   ============================================================ */
+.mj-card { transition: transform .18s ease, box-shadow .18s ease; }
+.mj-card:hover { transform: translateY(-3px); box-shadow: var(--mj-shadow-md); }
+
+.mj-menu-card { transition: transform .16s ease, box-shadow .16s ease, border-color .16s ease; will-change: transform; }
+.mj-menu-card:hover { transform: translateY(-4px) scale(1.02); box-shadow: var(--mj-shadow-md); border-color: var(--mj-amber); }
+.mj-menu-card:hover .mj-menu-emoji { animation: mj-wiggle .5s ease; }
+.mj-menu-card:active { transform: scale(0.97); }
+
+.mj-stat { transition: transform .18s ease, box-shadow .18s ease; animation: mj-fade-up .5s ease both; }
+.mj-stat:hover { transform: translateY(-2px); box-shadow: var(--mj-shadow-sm); }
+
+.mj-btn { transition: transform .12s ease, filter .15s ease, box-shadow .15s ease; }
+.mj-btn:hover { filter: brightness(1.06); }
+.mj-btn:active { transform: scale(0.95); }
+
+.mj-nav-item { transition: background .15s ease, transform .12s ease, color .15s ease; }
+.mj-nav-item:hover { transform: translateX(3px); }
+
+.mj-input { transition: border-color .15s ease, box-shadow .15s ease, background .15s ease; }
+.mj-input:focus { border-color: var(--mj-amber) !important; box-shadow: 0 0 0 3px rgba(242,160,61,0.25) !important; outline: none; }
+
+.mj-row-in { animation: mj-fade-up .35s ease both; }
+.mj-modal { animation: mj-pop .3s cubic-bezier(.18,.89,.32,1.28) both; }
+.mj-overlay { animation: mj-fade-in .2s ease both; }
+.mj-page { animation: mj-fade-in .3s ease; }
+
+.mj-spinner {
+  width: 42px; height: 42px; border-radius: 50%;
+  border: 4px solid rgba(255,255,255,0.35); border-top-color: #fff;
+  animation: mj-spin .8s linear infinite; margin: 0 auto;
+}
+
+/* Tabel bisa di-scroll horizontal di layar kecil */
+.mj-table-wrap { width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+
+/* Drawer sidebar (mobile) */
+.mj-drawer-overlay { position: fixed; inset: 0; background: rgba(44,27,20,0.45); z-index: 80; animation: mj-fade-in .2s ease both; }
+
+/* ============================================================
+   AKSESIBILITAS — hormati prefers-reduced-motion
+   ============================================================ */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
+}
+
+/* Fokus keyboard terlihat */
+button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visible {
+  outline: 3px solid var(--mj-amber);
+  outline-offset: 2px;
+}
