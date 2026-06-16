@@ -30,13 +30,32 @@
   --mj-font-body: "Plus Jakarta Sans", system-ui, -apple-system, sans-serif;
 }
 
+/* ── TEMA GELAP ───────────────────────────────────────────────
+   Hanya menimpa variabel permukaan; brand merah/amber tetap.    */
+[data-theme="dark"] {
+  --mj-cream:      #1b110d;
+  --mj-red-soft:   rgba(200,54,44,0.20);
+  --color-background-primary:   #271912;   /* kartu/panel */
+  --color-background-secondary: #32211a;   /* highlight lembut */
+  --color-background-tertiary:  #1b110d;   /* latar halaman */
+  --color-text-primary:   #f6ece2;
+  --color-text-secondary: #b59b8c;
+  --color-border-secondary: #4a3429;
+  --color-border-tertiary:  #3a281f;
+  --mj-shadow-sm: 0 2px 8px rgba(0,0,0,0.35);
+  --mj-shadow-md: 0 8px 24px rgba(0,0,0,0.45);
+  --mj-shadow-lg: 0 20px 50px rgba(0,0,0,0.55);
+  color-scheme: dark;
+}
+
 * { box-sizing: border-box; }
 html, body, #root { margin: 0; padding: 0; min-height: 100vh; }
 body {
   font-family: var(--mj-font-body);
-  background: var(--mj-cream);
+  background: var(--color-background-tertiary);
   color: var(--color-text-primary);
   -webkit-font-smoothing: antialiased;
+  transition: background .25s ease, color .25s ease;
 }
 input, button, select, textarea { font-family: inherit; }
 

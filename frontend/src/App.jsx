@@ -1,5 +1,81 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, createContext, useContext } from "react";
 import { api, getUser, getToken, setSession, clearSession } from "./api";
+
+// ─── PENGATURAN: TEMA & BAHASA ───────────────────────────────────────────────
+const SettingsContext = createContext(null);
+function useSettings() {
+  return useContext(SettingsContext) || { theme: "light", lang: "id", t: (k) => (T.id[k] ?? k) };
+}
+
+// Kamus terjemahan. t(key) -> string sesuai bahasa aktif.
+const T = {
+  id: {
+    appTagline: "Pedasnya bikin nagih 🌶️ · Sistem Kasir Multi-Cabang",
+    // nav
+    "nav.dashboard": "Dashboard", "nav.pos": "Kasir POS", "nav.orders": "Transaksi",
+    "nav.orders_history": "Riwayat Transaksi", "nav.menu": "Menu", "nav.expenses": "Pengeluaran",
+    "nav.expenses_daily": "Pengeluaran Harian", "nav.branches": "Cabang", "nav.users": "Pengguna",
+    "nav.reports": "Laporan", "nav.profile": "Profil", "nav.logout": "Keluar",
+    // umum
+    "c.save": "Simpan", "c.cancel": "Batal", "c.add": "Tambah", "c.edit": "Ubah", "c.delete": "Hapus",
+    "c.retry": "Coba Lagi", "c.close": "Tutup", "c.all_branches": "Semua Cabang", "c.all_status": "Semua Status",
+    "c.administrator": "Administrator", "c.cashier": "Kasir", "c.admin_center": "Admin Pusat",
+    // login
+    "login.username": "Username", "login.password": "Password", "login.signin_as": "Masuk sebagai",
+    "login.processing": "Memproses...", "login.demo": "Akun demo", "login.role_admin": "Admin", "login.role_cashier": "Kasir",
+    "login.desc_admin": "Akses penuh: dashboard, menu, cabang, pengguna & laporan.",
+    "login.desc_cashier": "Mode kasir: transaksi POS & pengeluaran harian.",
+    "login.ph_admin": "mis. admin", "login.ph_cashier": "mis. kasir_a", "login.wrong": "Username atau password salah.",
+    // logout / welcome
+    "logout.confirm_title": "Yakin mau keluar?", "logout.confirm_msg": "Anda akan keluar dari sesi ini.",
+    "logout.yes": "Ya, keluar", "logout.no": "Batal",
+    "logout.bye_title": "Sampai jumpa!", "logout.bye_sub": "Terima kasih sudah bekerja keras hari ini 🌶️",
+    "welcome.title": "Selamat datang", "welcome.admin": "Semoga harimu produktif 🌶️", "welcome.cashier": "Siap melayani pelanggan 🍜",
+    "loading.kitchen": "Menyiapkan dapur...", "err.load_title": "Gagal Memuat Data",
+    // profil
+    "profile.title": "Profil", "profile.account": "Informasi Akun", "profile.fullname": "Nama Lengkap",
+    "profile.username": "Username", "profile.role": "Peran", "profile.branch": "Cabang", "profile.branch_all": "Semua Cabang (Pusat)",
+    "profile.appearance": "Tampilan", "profile.theme": "Tema", "profile.theme_light": "Terang", "profile.theme_dark": "Gelap",
+    "profile.language": "Bahasa", "profile.lang_id": "Indonesia", "profile.lang_en": "Inggris",
+    // dashboard
+    "dash.title": "Dashboard", "dash.revenue": "Total Pendapatan", "dash.expenses": "Total Pengeluaran",
+    "dash.profit": "Laba Bersih", "dash.tx": "Total Transaksi", "dash.perf": "Performa Per Cabang",
+    "dash.best": "Menu Terlaris", "dash.recent": "Transaksi Terbaru",
+    "tbl.order_no": "No. Pesanan", "tbl.date": "Tanggal", "tbl.branch": "Cabang", "tbl.total": "Total",
+    "tbl.method": "Metode", "tbl.status": "Status", "tbl.cashier": "Kasir", "tbl.action": "Aksi",
+    "st.completed": "Selesai", "st.pending": "Pending", "st.cancelled": "Dibatalkan", "u.portions": "porsi", "u.tx": "trx",
+  },
+  en: {
+    appTagline: "Addictively spicy 🌶️ · Multi-Branch POS System",
+    "nav.dashboard": "Dashboard", "nav.pos": "Cashier POS", "nav.orders": "Transactions",
+    "nav.orders_history": "Transaction History", "nav.menu": "Menu", "nav.expenses": "Expenses",
+    "nav.expenses_daily": "Daily Expenses", "nav.branches": "Branches", "nav.users": "Users",
+    "nav.reports": "Reports", "nav.profile": "Profile", "nav.logout": "Log out",
+    "c.save": "Save", "c.cancel": "Cancel", "c.add": "Add", "c.edit": "Edit", "c.delete": "Delete",
+    "c.retry": "Try Again", "c.close": "Close", "c.all_branches": "All Branches", "c.all_status": "All Status",
+    "c.administrator": "Administrator", "c.cashier": "Cashier", "c.admin_center": "HQ Admin",
+    "login.username": "Username", "login.password": "Password", "login.signin_as": "Sign in as",
+    "login.processing": "Processing...", "login.demo": "Demo account", "login.role_admin": "Admin", "login.role_cashier": "Cashier",
+    "login.desc_admin": "Full access: dashboard, menu, branches, users & reports.",
+    "login.desc_cashier": "Cashier mode: POS transactions & daily expenses.",
+    "login.ph_admin": "e.g. admin", "login.ph_cashier": "e.g. kasir_a", "login.wrong": "Wrong username or password.",
+    "logout.confirm_title": "Log out now?", "logout.confirm_msg": "You will be signed out of this session.",
+    "logout.yes": "Yes, log out", "logout.no": "Cancel",
+    "logout.bye_title": "See you soon!", "logout.bye_sub": "Thanks for your hard work today 🌶️",
+    "welcome.title": "Welcome", "welcome.admin": "Have a productive day 🌶️", "welcome.cashier": "Ready to serve customers 🍜",
+    "loading.kitchen": "Heating up the kitchen...", "err.load_title": "Failed to Load Data",
+    "profile.title": "Profile", "profile.account": "Account Info", "profile.fullname": "Full Name",
+    "profile.username": "Username", "profile.role": "Role", "profile.branch": "Branch", "profile.branch_all": "All Branches (HQ)",
+    "profile.appearance": "Appearance", "profile.theme": "Theme", "profile.theme_light": "Light", "profile.theme_dark": "Dark",
+    "profile.language": "Language", "profile.lang_id": "Indonesian", "profile.lang_en": "English",
+    "dash.title": "Dashboard", "dash.revenue": "Total Revenue", "dash.expenses": "Total Expenses",
+    "dash.profit": "Net Profit", "dash.tx": "Total Transactions", "dash.perf": "Branch Performance",
+    "dash.best": "Best Sellers", "dash.recent": "Recent Transactions",
+    "tbl.order_no": "Order No.", "tbl.date": "Date", "tbl.branch": "Branch", "tbl.total": "Total",
+    "tbl.method": "Method", "tbl.status": "Status", "tbl.cashier": "Cashier", "tbl.action": "Action",
+    "st.completed": "Completed", "st.pending": "Pending", "st.cancelled": "Cancelled", "u.portions": "pcs", "u.tx": "tx",
+  },
+};
 
 // ─── KATEGORI -> EMOJI ───────────────────────────────────────────────────────
 // Pengganti referensi konstanta lama untuk menampilkan ikon menu.
@@ -143,10 +219,24 @@ export default function App() {
   const [loading, setLoading] = useState(false);
   const [loadError, setLoadError] = useState("");
   const [loggingOut, setLoggingOut] = useState(false);
+  const [confirmLogout, setConfirmLogout] = useState(false);
   const [welcoming, setWelcoming] = useState(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const [theme, setTheme] = useState(() => localStorage.getItem("mj_theme") || "light");
+  const [lang, setLang] = useState(() => localStorage.getItem("mj_lang") || "id");
   const width = useWindowWidth();
   const isMobile = width < 768;
+
+  // Terapkan & simpan tema.
+  useEffect(() => {
+    document.documentElement.setAttribute("data-theme", theme);
+    localStorage.setItem("mj_theme", theme);
+  }, [theme]);
+  useEffect(() => { localStorage.setItem("mj_lang", lang); }, [lang]);
+
+  // Penerjemah terikat bahasa aktif.
+  const t = useCallback((key) => (T[lang] && T[lang][key]) ?? T.id[key] ?? key, [lang]);
+  const settingsValue = { theme, setTheme, lang, setLang, t };
 
   const showToast = useCallback((msg, type = "success") => {
     setToast({ msg, type });
@@ -194,7 +284,9 @@ export default function App() {
     }, 1400);
   };
 
+  const requestLogout = () => { setDrawerOpen(false); setConfirmLogout(true); };
   const onLogout = () => {
+    setConfirmLogout(false);
     setDrawerOpen(false);
     setLoggingOut(true);
     // Tampilkan animasi "sampai jumpa" sejenak sebelum kembali ke login.
@@ -210,8 +302,8 @@ export default function App() {
     return (
       <div className="mj-goodbye">
         <div className="mj-bowl-emoji">🍜</div>
-        <p style={{ fontFamily: FONT_DISPLAY, fontSize: 26, fontWeight: 800, margin: "16px 0 4px" }}>Sampai jumpa!</p>
-        <p style={{ fontSize: 14, opacity: 0.85, margin: 0 }}>Terima kasih sudah bekerja keras hari ini 🌶️</p>
+        <p style={{ fontFamily: FONT_DISPLAY, fontSize: 26, fontWeight: 800, margin: "16px 0 4px" }}>{t("logout.bye_title")}</p>
+        <p style={{ fontSize: 14, opacity: 0.85, margin: 0 }}>{t("logout.bye_sub")}</p>
       </div>
     );
   }
@@ -222,25 +314,25 @@ export default function App() {
         <div className="mj-check">
           <svg viewBox="0 0 52 52" fill="none"><path d="M14 27 l8 8 l16 -18" stroke="#fff" strokeWidth="5" strokeLinecap="round" strokeLinejoin="round" /></svg>
         </div>
-        <p style={{ fontFamily: FONT_DISPLAY, fontSize: 26, fontWeight: 800, margin: "4px 0 2px" }}>Selamat datang, {welcoming.full_name}!</p>
-        <p style={{ fontSize: 14, opacity: 0.9, margin: 0 }}>{welcoming.role === "cashier" ? "Siap melayani pelanggan 🍜" : "Semoga harimu produktif 🌶️"}</p>
+        <p style={{ fontFamily: FONT_DISPLAY, fontSize: 26, fontWeight: 800, margin: "4px 0 2px" }}>{t("welcome.title")}, {welcoming.full_name}!</p>
+        <p style={{ fontSize: 14, opacity: 0.9, margin: 0 }}>{welcoming.role === "cashier" ? t("welcome.cashier") : t("welcome.admin")}</p>
         <div className="mj-bowl-emoji">🍜</div>
       </div>
     );
   }
 
-  if (!currentUser) return <LoginPage onLogin={handleLogin} />;
+  if (!currentUser) return <SettingsContext.Provider value={settingsValue}><LoginPage onLogin={handleLogin} /></SettingsContext.Provider>;
 
   if (loadError) {
     return (
       <div style={S.loginWrap} className="mj-login-bg">
         <div style={{ ...S.loginCard, textAlign: "center" }} className="mj-login-card">
           <div style={{ fontSize: 44, marginBottom: 8 }}>⚠️</div>
-          <h2 style={{ fontFamily: FONT_DISPLAY, color: "var(--mj-red)", margin: "0 0 8px" }}>Gagal Memuat Data</h2>
-          <p style={{ fontSize: 13, color: "#7a5a47" }}>{loadError}</p>
-          <p style={{ fontSize: 12, color: "#a07d6a" }}>Pastikan server backend berjalan di port 4000.</p>
-          <button className="mj-btn" style={{ ...S.btnPrimary, marginTop: 8 }} onClick={() => loadData(currentUser)}>Coba Lagi</button>
-          <button className="mj-btn" style={{ ...S.btnPrimary, marginTop: 10, background: "#9a8475", boxShadow: "none" }} onClick={onLogout}>Keluar</button>
+          <h2 style={{ fontFamily: FONT_DISPLAY, color: "var(--mj-red)", margin: "0 0 8px" }}>{t("err.load_title")}</h2>
+          <p style={{ fontSize: 13, color: "var(--color-text-secondary)" }}>{loadError}</p>
+          <p style={{ fontSize: 12, color: "var(--color-text-secondary)" }}>Server: /api</p>
+          <button className="mj-btn" style={{ ...S.btnPrimary, marginTop: 8 }} onClick={() => loadData(currentUser)}>{t("c.retry")}</button>
+          <button className="mj-btn" style={{ ...S.btnPrimary, marginTop: 10, background: "#9a8475", boxShadow: "none" }} onClick={onLogout}>{t("nav.logout")}</button>
         </div>
       </div>
     );
@@ -252,7 +344,7 @@ export default function App() {
         <div style={{ textAlign: "center", color: "white" }}>
           <SteamingBowl size={110} />
           <div className="mj-spinner" style={{ margin: "18px auto 12px" }} />
-          <p style={{ fontFamily: FONT_DISPLAY, fontSize: 18, fontWeight: 700, margin: 0 }}>Menyiapkan dapur...</p>
+          <p style={{ fontFamily: FONT_DISPLAY, fontSize: 18, fontWeight: 700, margin: 0 }}>{t("loading.kitchen")}</p>
         </div>
       </div>
     );
@@ -266,40 +358,59 @@ export default function App() {
 
   const navItems = currentUser.role === "admin"
     ? [
-      { id: "dashboard", icon: "ti-layout-dashboard", label: "Dashboard" },
-      { id: "pos", icon: "ti-shopping-cart", label: "Kasir POS" },
-      { id: "orders", icon: "ti-receipt", label: "Transaksi" },
-      { id: "menu", icon: "ti-tools-kitchen", label: "Menu" },
-      { id: "expenses", icon: "ti-cash", label: "Pengeluaran" },
-      { id: "branches", icon: "ti-building-store", label: "Cabang" },
-      { id: "users", icon: "ti-users", label: "Pengguna" },
-      { id: "reports", icon: "ti-chart-bar", label: "Laporan" },
+      { id: "dashboard", icon: "ti-layout-dashboard", label: t("nav.dashboard") },
+      { id: "pos", icon: "ti-shopping-cart", label: t("nav.pos") },
+      { id: "orders", icon: "ti-receipt", label: t("nav.orders") },
+      { id: "menu", icon: "ti-tools-kitchen", label: t("nav.menu") },
+      { id: "expenses", icon: "ti-cash", label: t("nav.expenses") },
+      { id: "branches", icon: "ti-building-store", label: t("nav.branches") },
+      { id: "users", icon: "ti-users", label: t("nav.users") },
+      { id: "reports", icon: "ti-chart-bar", label: t("nav.reports") },
+      { id: "profile", icon: "ti-user-circle", label: t("nav.profile") },
     ]
     : [
-      { id: "pos", icon: "ti-shopping-cart", label: "Kasir POS" },
-      { id: "orders", icon: "ti-receipt", label: "Riwayat Transaksi" },
-      { id: "expenses", icon: "ti-cash", label: "Pengeluaran Harian" },
+      { id: "pos", icon: "ti-shopping-cart", label: t("nav.pos") },
+      { id: "orders", icon: "ti-receipt", label: t("nav.orders_history") },
+      { id: "expenses", icon: "ti-cash", label: t("nav.expenses_daily") },
+      { id: "profile", icon: "ti-user-circle", label: t("nav.profile") },
     ];
 
   return (
+    <SettingsContext.Provider value={settingsValue}>
     <div style={S.app}>
       {toast && (
         <div className="mj-row-in" style={{ position: "fixed", top: 16, left: "50%", transform: "translateX(-50%)", zIndex: 9999, background: toast.type === "success" ? "linear-gradient(135deg,#2E7D52,#1f5e3c)" : "linear-gradient(135deg,#b91c1c,#7f1414)", color: "white", padding: "12px 22px", borderRadius: 14, fontSize: 14, fontWeight: 700, boxShadow: "0 10px 30px rgba(0,0,0,0.25)", display: "flex", alignItems: "center", gap: 8, maxWidth: "92vw" }}>
           <i className={`ti ${toast.type === "success" ? "ti-circle-check" : "ti-alert-triangle"}`} aria-hidden="true" /> {toast.msg}
         </div>
       )}
+
+      {/* Konfirmasi keluar */}
+      {confirmLogout && (
+        <div className="mj-overlay" style={{ position: "fixed", inset: 0, zIndex: 12000, background: "rgba(20,12,8,0.55)", display: "flex", alignItems: "center", justifyContent: "center", padding: 16 }} onClick={() => setConfirmLogout(false)}>
+          <div className="mj-modal" style={{ background: "var(--color-background-primary)", color: "var(--color-text-primary)", borderRadius: 22, padding: "26px 24px", width: "min(360px, 100%)", textAlign: "center", boxShadow: "var(--mj-shadow-lg)" }} onClick={e => e.stopPropagation()}>
+            <div style={{ fontSize: 46, animation: "mj-wiggle 0.9s ease-in-out infinite" }}>👋</div>
+            <p style={{ fontFamily: FONT_DISPLAY, fontSize: 21, fontWeight: 800, margin: "10px 0 4px" }}>{t("logout.confirm_title")}</p>
+            <p style={{ fontSize: 13.5, color: "var(--color-text-secondary)", margin: "0 0 20px" }}>{t("logout.confirm_msg")}</p>
+            <div style={{ display: "flex", gap: 10 }}>
+              <button className="mj-btn" style={{ flex: 1, padding: "11px", borderRadius: 12, border: "none", cursor: "pointer", fontWeight: 700, fontSize: 14, background: "var(--color-background-secondary)", color: "var(--color-text-primary)" }} onClick={() => setConfirmLogout(false)}>{t("logout.no")}</button>
+              <button className="mj-btn" style={{ flex: 1, padding: "11px", borderRadius: 12, border: "none", cursor: "pointer", fontWeight: 800, fontSize: 14, background: "linear-gradient(135deg, var(--mj-red), var(--mj-red-deep))", color: "white" }} onClick={onLogout}>{t("logout.yes")}</button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {page === "pos"
-        ? <POSPage currentUser={currentUser} menuItems={menuItems} categories={categories} branches={branches} orders={orders} setOrders={setOrders} expenses={visibleExpenses} setExpenses={setExpenses} setPage={setPage} showToast={showToast} onLogout={onLogout} isMobile={isMobile} />
+        ? <POSPage currentUser={currentUser} menuItems={menuItems} categories={categories} branches={branches} orders={orders} setOrders={setOrders} expenses={visibleExpenses} setExpenses={setExpenses} setPage={setPage} showToast={showToast} onLogout={requestLogout} isMobile={isMobile} />
         : (
           <div style={{ ...S.mainLayout, flexDirection: isMobile ? "column" : "row" }}>
             {/* Top bar mobile dengan tombol menu */}
             {isMobile && (
               <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "12px 16px", background: "linear-gradient(135deg, var(--mj-red), var(--mj-red-deep))", color: "white", position: "sticky", top: 0, zIndex: 70 }}>
-                <button className="mj-btn" aria-label="Buka menu" style={{ background: "rgba(255,255,255,0.18)", color: "white", border: "none", borderRadius: 10, padding: "8px 11px", cursor: "pointer" }} onClick={() => setDrawerOpen(true)}>
+                <button className="mj-btn" aria-label="Menu" style={{ background: "rgba(255,255,255,0.18)", color: "white", border: "none", borderRadius: 10, padding: "8px 11px", cursor: "pointer" }} onClick={() => setDrawerOpen(true)}>
                   <i className="ti ti-menu-2" style={{ fontSize: 20 }} aria-hidden="true" />
                 </button>
                 <span style={{ fontFamily: FONT_DISPLAY, fontWeight: 800, fontSize: 18 }}>🍜 Mie Jebew</span>
-                <button className="mj-btn" aria-label="Keluar" style={{ background: "rgba(255,255,255,0.18)", color: "white", border: "none", borderRadius: 10, padding: "8px 11px", cursor: "pointer" }} onClick={onLogout}>
+                <button className="mj-btn" aria-label={t("nav.logout")} style={{ background: "rgba(255,255,255,0.18)", color: "white", border: "none", borderRadius: 10, padding: "8px 11px", cursor: "pointer" }} onClick={requestLogout}>
                   <i className="ti ti-logout" style={{ fontSize: 18 }} aria-hidden="true" />
                 </button>
               </div>
@@ -311,12 +422,12 @@ export default function App() {
                 <>
                   <div className="mj-drawer-overlay" onClick={() => setDrawerOpen(false)} />
                   <div style={{ position: "fixed", top: 0, left: 0, bottom: 0, zIndex: 90, animation: "mj-slide-down .25s ease both" }}>
-                    <Sidebar navItems={navItems} page={page} setPage={(p) => { setPage(p); setDrawerOpen(false); }} currentUser={currentUser} userBranch={userBranch} onLogout={onLogout} onClose={() => setDrawerOpen(false)} isDrawer />
+                    <Sidebar navItems={navItems} page={page} setPage={(p) => { setPage(p); setDrawerOpen(false); }} currentUser={currentUser} userBranch={userBranch} onLogout={requestLogout} onClose={() => setDrawerOpen(false)} isDrawer />
                   </div>
                 </>
               )
             ) : (
-              <Sidebar navItems={navItems} page={page} setPage={setPage} currentUser={currentUser} userBranch={userBranch} onLogout={onLogout} />
+              <Sidebar navItems={navItems} page={page} setPage={setPage} currentUser={currentUser} userBranch={userBranch} onLogout={requestLogout} />
             )}
 
             <div style={S.contentArea} className="mj-page" key={page}>
@@ -327,11 +438,13 @@ export default function App() {
               {page === "branches" && <BranchesPage branches={branches} setBranches={setBranches} showToast={showToast} />}
               {page === "users" && <UsersPage users={users} setUsers={setUsers} branches={branches} showToast={showToast} />}
               {page === "reports" && <ReportsPage orders={orders} expenses={expenses} branches={branches} menuItems={menuItems} isMobile={isMobile} />}
+              {page === "profile" && <ProfilePage currentUser={currentUser} userBranch={userBranch} />}
             </div>
           </div>
         )
       }
     </div>
+    </SettingsContext.Provider>
   );
 }
 
@@ -384,7 +497,9 @@ function LoginPage({ onLogin }) {
   const [password, setPassword] = useState("");
   const [err, setErr] = useState("");
   const [busy, setBusy] = useState(false);
+  const { t: tr, lang } = useSettings();
   const theme = ROLE_THEME[role];
+  const roleName = (rl) => tr(rl === "admin" ? "login.role_admin" : "login.role_cashier");
 
   const doLogin = async () => {
     if (busy) return;
@@ -394,13 +509,14 @@ function LoginPage({ onLogin }) {
       const { token, user } = await api.login(username, password);
       // Cocokkan peran yang dipilih dengan peran akun sebenarnya.
       if (user.role !== role) {
-        const actual = user.role === "admin" ? "Admin" : "Kasir";
-        setErr(`Akun ini terdaftar sebagai ${actual}, bukan ${theme.label}. Silakan pilih tab ${actual}.`);
+        setErr(lang === "en"
+          ? `This account is a ${roleName(user.role)}, not ${roleName(role)}. Please pick the ${roleName(user.role)} tab.`
+          : `Akun ini ${roleName(user.role)}, bukan ${roleName(role)}. Silakan pilih tab ${roleName(user.role)}.`);
         return;
       }
       onLogin(token, user);
     } catch (e) {
-      setErr(e.message || "Username atau password salah.");
+      setErr(e.message || tr("login.wrong"));
     } finally {
       setBusy(false);
     }
@@ -425,13 +541,13 @@ function LoginPage({ onLogin }) {
         <div style={{ textAlign: "center", marginBottom: 18 }}>
           <SteamingBowl size={92} />
           <h1 style={S.loginTitle}>Mie Jebew</h1>
-          <p style={S.loginSub}>Pedasnya bikin nagih 🌶️ · Sistem Kasir Multi-Cabang</p>
+          <p style={S.loginSub}>{tr("appTagline")}</p>
         </div>
 
         {/* Pemilih level / peran */}
         <div style={{ display: "flex", gap: 6, background: "rgba(0,0,0,0.045)", padding: 5, borderRadius: 14, marginBottom: 12 }}>
           {["admin", "cashier"].map((r) => {
-            const t = ROLE_THEME[r];
+            const rt = ROLE_THEME[r];
             const active = role === r;
             return (
               <button
@@ -442,31 +558,31 @@ function LoginPage({ onLogin }) {
                   flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
                   padding: "11px 8px", borderRadius: 10, border: "none", cursor: "pointer",
                   fontFamily: FONT_DISPLAY, fontWeight: 800, fontSize: 15, transition: "all .2s ease",
-                  background: active ? `linear-gradient(135deg, ${t.accent}, ${t.accent2})` : "transparent",
+                  background: active ? `linear-gradient(135deg, ${rt.accent}, ${rt.accent2})` : "transparent",
                   color: active ? "#fff" : "#a07c66",
                   boxShadow: active ? "0 8px 18px rgba(0,0,0,0.18)" : "none",
                   transform: active ? "translateY(-1px)" : "none",
                 }}
               >
-                <i className={`ti ${t.icon}`} style={{ fontSize: 18 }} aria-hidden="true" /> {t.label}
+                <i className={`ti ${rt.icon}`} style={{ fontSize: 18 }} aria-hidden="true" /> {roleName(r)}
               </button>
             );
           })}
         </div>
         <p style={{ textAlign: "center", fontSize: 12.5, color: "#8a6a55", margin: "0 0 16px", minHeight: 34, lineHeight: 1.5 }}>
-          {theme.desc}
+          {tr(role === "admin" ? "login.desc_admin" : "login.desc_cashier")}
         </p>
 
-        <label style={{ ...S.label, color: "#7a5a47" }}>Username</label>
-        <input className="mj-input" style={S.input} value={username} onChange={e => { setUsername(e.target.value); setErr(""); }} placeholder={role === "admin" ? "mis. admin" : "mis. kasir_a"} onKeyDown={e => e.key === "Enter" && doLogin()} />
-        <label style={{ ...S.label, color: "#7a5a47" }}>Password</label>
-        <input type="password" className="mj-input" style={S.input} value={password} onChange={e => { setPassword(e.target.value); setErr(""); }} placeholder="Masukkan password" onKeyDown={e => e.key === "Enter" && doLogin()} />
+        <label style={{ ...S.label, color: "#7a5a47" }}>{tr("login.username")}</label>
+        <input className="mj-input" style={S.input} value={username} onChange={e => { setUsername(e.target.value); setErr(""); }} placeholder={tr(role === "admin" ? "login.ph_admin" : "login.ph_cashier")} onKeyDown={e => e.key === "Enter" && doLogin()} />
+        <label style={{ ...S.label, color: "#7a5a47" }}>{tr("login.password")}</label>
+        <input type="password" className="mj-input" style={S.input} value={password} onChange={e => { setPassword(e.target.value); setErr(""); }} placeholder="••••••••" onKeyDown={e => e.key === "Enter" && doLogin()} />
         {err && <p style={{ color: "#dc2626", fontSize: 13, margin: "-4px 0 10px", fontWeight: 600 }} className="mj-row-in"><i className="ti ti-alert-circle" aria-hidden="true" /> {err}</p>}
         <button className="mj-btn" style={{ ...S.btnPrimary, background: `linear-gradient(135deg, ${theme.accent}, ${theme.accent2})`, opacity: busy ? 0.75 : 1 }} onClick={doLogin} disabled={busy}>
-          {busy ? "Memproses..." : <><i className={`ti ${theme.icon}`} style={{ fontSize: 17, marginRight: 6 }} aria-hidden="true" />Masuk sebagai {theme.label}</>}
+          {busy ? tr("login.processing") : <><i className={`ti ${theme.icon}`} style={{ fontSize: 17, marginRight: 6 }} aria-hidden="true" />{tr("login.signin_as")} {roleName(role)}</>}
         </button>
         <div style={{ marginTop: 16, padding: "10px 12px", background: theme.soft, borderRadius: 12, fontSize: 12, color: theme.accent2, lineHeight: 1.6, transition: "background .2s ease" }}>
-          <strong>Akun demo {theme.label}:</strong><br />{theme.demo}
+          <strong>{tr("login.demo")} {roleName(role)}:</strong><br />{theme.demo}
         </div>
       </div>
     </div>
@@ -476,16 +592,17 @@ function LoginPage({ onLogin }) {
 
 // ─── SIDEBAR ─────────────────────────────────────────────────────────────────
 function Sidebar({ navItems, page, setPage, currentUser, userBranch, onLogout, isDrawer = false, onClose }) {
+  const { t } = useSettings();
   return (
     <div style={{ ...S.sidebar, height: isDrawer ? "100vh" : undefined, boxShadow: isDrawer ? "8px 0 40px rgba(0,0,0,0.3)" : "none" }}>
       <div style={{ ...S.sidebarLogo, display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
         <div>
           <div style={{ fontSize: 26 }}>🍜</div>
           <p style={S.sidebarLogoTitle}>Mie Jebew</p>
-          <p style={S.sidebarLogoSub}>{userBranch ? userBranch.name : "Admin Pusat"}</p>
+          <p style={S.sidebarLogoSub}>{userBranch ? userBranch.name : t("c.admin_center")}</p>
         </div>
         {isDrawer && (
-          <button aria-label="Tutup menu" onClick={onClose} style={{ background: "rgba(255,255,255,0.15)", border: "none", color: "white", borderRadius: 10, width: 34, height: 34, cursor: "pointer", fontSize: 18 }}>
+          <button aria-label={t("c.close")} onClick={onClose} style={{ background: "rgba(255,255,255,0.15)", border: "none", color: "white", borderRadius: 10, width: 34, height: 34, cursor: "pointer", fontSize: 18 }}>
             <i className="ti ti-x" aria-hidden="true" />
           </button>
         )}
@@ -502,11 +619,71 @@ function Sidebar({ navItems, page, setPage, currentUser, userBranch, onLogout, i
         <LiveClock style={{ padding: "6px 10px 10px", color: "white" }} />
         <div style={{ padding: "8px 10px", marginBottom: 4 }}>
           <p style={{ margin: 0, fontSize: 13.5, fontWeight: 700, color: "white" }}>{currentUser.full_name}</p>
-          <p style={{ margin: 0, fontSize: 11, color: "rgba(255,255,255,0.6)" }}>{currentUser.role === "admin" ? "Administrator" : "Kasir"}</p>
+          <p style={{ margin: 0, fontSize: 11, color: "rgba(255,255,255,0.6)" }}>{currentUser.role === "admin" ? t("c.administrator") : t("c.cashier")}</p>
         </div>
         <div className="mj-nav-item" style={{ ...S.navItem(false), color: "#ffd7d2" }} onClick={onLogout}>
           <i className="ti ti-logout" style={{ fontSize: 19 }} aria-hidden="true" />
-          <span style={S.navLabel}>Keluar</span>
+          <span style={S.navLabel}>{t("nav.logout")}</span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── PROFIL ──────────────────────────────────────────────────────────────────
+function ProfilePage({ currentUser, userBranch }) {
+  const { t, theme, setTheme, lang, setLang } = useSettings();
+  const roleLabel = currentUser.role === "admin" ? t("c.administrator") : t("c.cashier");
+  const branchLabel = currentUser.role === "admin" ? t("profile.branch_all") : (userBranch?.name || "-");
+  const initials = (currentUser.full_name || currentUser.username || "?").trim().split(/\s+/).map(w => w[0]).slice(0, 2).join("").toUpperCase();
+
+  const Seg = ({ value, onChange, options }) => (
+    <div style={{ display: "flex", gap: 6, background: "var(--color-background-secondary)", padding: 5, borderRadius: 12 }}>
+      {options.map(o => {
+        const active = value === o.v;
+        return (
+          <button key={o.v} onClick={() => onChange(o.v)} style={{
+            flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: 7,
+            padding: "10px 8px", borderRadius: 9, border: "none", cursor: "pointer", fontWeight: 700, fontSize: 13.5,
+            transition: "all .18s ease",
+            background: active ? "linear-gradient(135deg, var(--mj-red), var(--mj-red-deep))" : "transparent",
+            color: active ? "#fff" : "var(--color-text-secondary)",
+          }}>
+            {o.icon && <i className={`ti ${o.icon}`} aria-hidden="true" />} {o.label}
+          </button>
+        );
+      })}
+    </div>
+  );
+
+  return (
+    <div>
+      <div style={S.pageHeader}><h1 style={S.pageTitle}>{t("profile.title")}</h1></div>
+      <div style={{ padding: "1.5rem", maxWidth: 560 }}>
+        <div style={{ ...S.card, display: "flex", alignItems: "center", gap: 16, marginBottom: 16 }}>
+          <div style={{ width: 64, height: 64, borderRadius: "50%", background: "linear-gradient(135deg, var(--mj-red), var(--mj-amber))", color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", fontFamily: FONT_DISPLAY, fontWeight: 800, fontSize: 24, flexShrink: 0 }}>{initials}</div>
+          <div>
+            <p style={{ margin: 0, fontFamily: FONT_DISPLAY, fontSize: 20, fontWeight: 800 }}>{currentUser.full_name}</p>
+            <p style={{ margin: "2px 0 0", fontSize: 13, color: "var(--color-text-secondary)" }}>@{currentUser.username} · {roleLabel}</p>
+          </div>
+        </div>
+
+        <div style={{ ...S.card, marginBottom: 16 }}>
+          <h3 style={S.sectionTitle}>{t("profile.account")}</h3>
+          {[[t("profile.fullname"), currentUser.full_name], [t("profile.username"), currentUser.username], [t("profile.role"), roleLabel], [t("profile.branch"), branchLabel]].map(([k, v]) => (
+            <div key={k} style={{ display: "flex", justifyContent: "space-between", gap: 12, padding: "9px 0", borderBottom: "1px solid var(--color-border-tertiary)", fontSize: 14 }}>
+              <span style={{ color: "var(--color-text-secondary)" }}>{k}</span>
+              <span style={{ fontWeight: 700, textAlign: "right" }}>{v}</span>
+            </div>
+          ))}
+        </div>
+
+        <div style={S.card}>
+          <h3 style={S.sectionTitle}>{t("profile.appearance")}</h3>
+          <p style={{ fontSize: 13, fontWeight: 700, margin: "4px 0 8px" }}>{t("profile.theme")}</p>
+          <Seg value={theme} onChange={setTheme} options={[{ v: "light", label: t("profile.theme_light"), icon: "ti-sun" }, { v: "dark", label: t("profile.theme_dark"), icon: "ti-moon" }]} />
+          <p style={{ fontSize: 13, fontWeight: 700, margin: "18px 0 8px" }}>{t("profile.language")}</p>
+          <Seg value={lang} onChange={setLang} options={[{ v: "id", label: t("profile.lang_id") }, { v: "en", label: t("profile.lang_en") }]} />
         </div>
       </div>
     </div>
@@ -515,6 +692,7 @@ function Sidebar({ navItems, page, setPage, currentUser, userBranch, onLogout, i
 
 // ─── DASHBOARD ────────────────────────────────────────────────────────────────
 function DashboardPage({ orders, expenses, branches, menuItems }) {
+  const { t, lang } = useSettings();
   const completedOrders = orders.filter(o => o.status === "completed");
   const totalRevenue = completedOrders.reduce((s, o) => s + o.final_amount, 0);
   const totalExpenses = expenses.reduce((s, e) => s + e.amount, 0);
@@ -540,16 +718,16 @@ function DashboardPage({ orders, expenses, branches, menuItems }) {
   return (
     <div>
       <div style={S.pageHeader}>
-        <h1 style={S.pageTitle}>Dashboard</h1>
-        <span style={{ fontSize: 13, color: "var(--color-text-secondary)" }}>{new Date().toLocaleDateString("id-ID", { weekday: "long", day: "2-digit", month: "long", year: "numeric" })}</span>
+        <h1 style={S.pageTitle}>{t("dash.title")}</h1>
+        <span style={{ fontSize: 13, color: "var(--color-text-secondary)" }}>{new Date().toLocaleDateString(lang === "en" ? "en-US" : "id-ID", { weekday: "long", day: "2-digit", month: "long", year: "numeric" })}</span>
       </div>
       <div style={S.pageContent}>
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(170px, 1fr))", gap: 12, marginBottom: "1.5rem" }}>
           {[
-            { label: "Total Pendapatan", value: fmt(totalRevenue), icon: "ti-trending-up", color: "#166534" },
-            { label: "Total Pengeluaran", value: fmt(totalExpenses), icon: "ti-trending-down", color: "#991b1b" },
-            { label: "Laba Bersih", value: fmt(totalProfit), icon: "ti-chart-line", color: totalProfit >= 0 ? "#166534" : "#991b1b" },
-            { label: "Total Transaksi", value: completedOrders.length, icon: "ti-receipt", color: "#1e40af" },
+            { label: t("dash.revenue"), value: fmt(totalRevenue), icon: "ti-trending-up", color: "#166534" },
+            { label: t("dash.expenses"), value: fmt(totalExpenses), icon: "ti-trending-down", color: "#991b1b" },
+            { label: t("dash.profit"), value: fmt(totalProfit), icon: "ti-chart-line", color: totalProfit >= 0 ? "#166534" : "#991b1b" },
+            { label: t("dash.tx"), value: completedOrders.length, icon: "ti-receipt", color: "#1e40af" },
           ].map((s, i) => (
             <div key={i} className="mj-stat" style={S.statCard}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
@@ -565,14 +743,14 @@ function DashboardPage({ orders, expenses, branches, menuItems }) {
 
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(290px, 1fr))", gap: "1.25rem", marginBottom: "1.25rem" }}>
           <div className="mj-card" style={S.card}>
-            <p style={S.sectionTitle}>Performa Per Cabang</p>
+            <p style={S.sectionTitle}>{t("dash.perf")}</p>
             {branchStats.map((b, i) => {
               const pct = totalRevenue ? Math.round(b.revenue / totalRevenue * 100) : 0;
               return (
                 <div key={i} style={{ marginBottom: 14 }}>
                   <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13, marginBottom: 4 }}>
                     <span style={{ fontWeight: 600 }}>{b.name.replace("Mie Jebew ", "")}</span>
-                    <span>{fmt(b.revenue)} <span style={{ color: "var(--color-text-secondary)" }}>({b.count} trx)</span></span>
+                    <span>{fmt(b.revenue)} <span style={{ color: "var(--color-text-secondary)" }}>({b.count} {t("u.tx")})</span></span>
                   </div>
                   <div style={{ background: "var(--color-background-secondary)", borderRadius: 4, height: 8 }}>
                     <div style={{ background: "var(--mj-red)", height: 8, borderRadius: 4, width: `${pct}%`, transition: "width 0.5s" }} />
@@ -583,24 +761,24 @@ function DashboardPage({ orders, expenses, branches, menuItems }) {
           </div>
 
           <div className="mj-card" style={S.card}>
-            <p style={S.sectionTitle}>Menu Terlaris</p>
+            <p style={S.sectionTitle}>{t("dash.best")}</p>
             {topItems.map((it, i) => (
               <div key={i} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "7px 0", borderBottom: "1px solid var(--color-border-tertiary)" }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                   <span style={{ width: 24, height: 24, background: "var(--mj-red)", color: "white", borderRadius: 6, fontSize: 11, fontWeight: 700, display: "flex", alignItems: "center", justifyContent: "center" }}>{i + 1}</span>
                   <span style={{ fontSize: 14 }}>{it.name}</span>
                 </div>
-                <span style={{ ...S.badge("info"), fontSize: 12 }}>{it.qty} porsi</span>
+                <span style={{ ...S.badge("info"), fontSize: 12 }}>{it.qty} {t("u.portions")}</span>
               </div>
             ))}
           </div>
         </div>
 
         <div className="mj-card" style={S.card}>
-          <p style={S.sectionTitle}>Transaksi Terbaru</p>
+          <p style={S.sectionTitle}>{t("dash.recent")}</p>
           <div className="mj-table-wrap"><table style={S.table}>
             <thead><tr>
-              {["No. Pesanan", "Tanggal", "Cabang", "Total", "Metode", "Status"].map(h => <th key={h} style={S.th}>{h}</th>)}
+              {[t("tbl.order_no"), t("tbl.date"), t("tbl.branch"), t("tbl.total"), t("tbl.method"), t("tbl.status")].map(h => <th key={h} style={S.th}>{h}</th>)}
             </tr></thead>
             <tbody>
               {recentOrders.map(o => {
